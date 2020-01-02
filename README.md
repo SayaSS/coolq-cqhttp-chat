@@ -46,3 +46,5 @@ node index
 因为没学习够对话前机器人会很笨。。所以可以先启用腾讯ai作为后备对话，但自己学习的优先度高
 
 [前往申请appkey和appid](https://ai.qq.com/doc/nlpchat.shtml)
+
+appkey和appid请在tencentAi.js里填写
