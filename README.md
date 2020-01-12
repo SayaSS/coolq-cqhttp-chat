@@ -17,8 +17,10 @@
 打开酷Q目录里的data\app\io.github.richardchien.coolqhttpapi\${对应Q号}.ini
 ```
 ![配置1](https://pic.downk.cc/item/5e0c1a8476085c32892e3524.jpg)
-![配置2](https://pic.downk.cc/item/5e0c1bbf76085c32892e6556.jpg)
-![配置3](https://pic.downk.cc/item/5e0c1bd976085c32892e696c.jpg)
+```ps1
+然后打开项目目录里的bot.js配置以下内容
+```
+![配置2](https://pic.downk.cc/item/5e1ab8032fb38b8c3c22d983.jpg)
 
 ## 3、Node.js
 需要[nodejs](https://nodejs.org/en/)作为运行环境
@@ -35,7 +37,7 @@ npm install
 
 ③请打开chat.js按照注释来配置聊天插件
 配置示例:
-![配置2](https://pic.downk.cc/item/5e0c863176085c32893fd838.jpg)
+![配置2](https://pic.downk.cc/item/5e1ab8492fb38b8c3c22e0e9.jpg)
 
 ④运行
 ```ps1
