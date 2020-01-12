@@ -4,11 +4,18 @@ const bot=app.bot;
 const Levenshtein=require('./similar');
 const tAlp=require('./tencentAi');
 const config={//请修改配置
-    useTencentAlp:0,//是否使用腾讯ai的对话,0为不使用，1位使用
-    similarity:0.6,//启用腾讯ai后优先使用学习的对话，低于一定相似度再调用腾讯的
+    useTencentAlp:0,//是否使用腾讯ai的对话,0为不使用，1为使用
+    similarity:0.5,//启用腾讯ai后优先使用学习的对话，低于一定相似度再调用腾讯的
     cqImagePath:'',//请修改为酷Q的image目录
-    storagePath:''//请修改为学习对话时，下载的图片想要存放的目录
+    storagePath:'',//请修改为学习对话时下载的图片存放的目录,
+    at:0//是否需要at来触发对话,0为不使用，1为使用
 };
+let qq=0;
+bot('get_login_info').then(res=>{
+    console.log('获取机器人qq号成功~qq号为:'+(qq=res.user_id));
+}).catch(err=>{
+    console.log('获取机器人qq号失败。。')
+});
 let chatJson={};
 function loadChat() {
     fs.readFile('src/chat.json',function(err,data){
@@ -25,6 +32,11 @@ function loadChat() {
 function chats(){
     loadChat();
     bot.on('message', async context => {
+        if (config.at){
+            if (!context.message.includes(`[CQ:at,qq=${qq}]`)){
+                return 0;
+            }
+        }
         if (context.message.indexOf('学习#')>=0)
             return 0;
         let max_similar=[];
@@ -34,28 +46,23 @@ function chats(){
         });
         let max_value=Math.max.apply(null, max_similar);
         let returnMessage='';
-        if (config.useTencentAlp===1&&(max_value<config.similarity)) {
-           returnMessage=await tAlp.tencentAlp(context.message);
-            if (returnMessage===''){
-                let replys=["你真棒!","真的嘛?","然后呢~","Awesome!","Really?","And then?","すごい！","本当に？","それで","真系架？","点解既？","你好叻啊！"];//实在没得回复的万能回复
-                returnMessage=replys[Math.floor(Math.random()*replys.length)];
-            }
-        }else {
-            if (max_value===0){
-                returnMessage='本小姐还没学过这个呢';
+        if (max_value<config.similarity){
+            if (config.useTencentAlp===1) {
+                returnMessage=await tAlp.tencentAlp(context.message);
+                if (returnMessage===''){
+                    let replys=["你真棒!","真的嘛?","然后呢~","Awesome!","Really?","And then?","すごい！","本当に？","それで","真系架？","点解既？","你好叻啊！"];//实在没得回复的万能回复
+                    returnMessage=replys[Math.floor(Math.random()*replys.length)];
+                }
             }else {
+                returnMessage='本小姐还没学过这个呢,你可以教教我嘛';
+            }
+        }
+        else {
                 maxIndex=max_similar.indexOf(Math.max.apply(null, max_similar));//获取相似度最高的问题的下标
                 let replyArray=chatJson.chat[maxIndex].reply;
                 returnMessage=replyArray[Math.floor(Math.random()*replyArray.length)]//随机匹配问题下的一个回答
             }
-        }
-        bot('send_msg', {
-            message_type:context.message_type,
-            user_id:context.group_id||context.user_id||context.discuss_id,
-            group_id:context.group_id||context.user_id||context.discuss_id,
-            discuss_id:context.group_id||context.user_id||context.discuss_id,
-            message:returnMessage
-        });
+        app.send_msg(context,returnMessage);
     });
 }
 function learn(){
@@ -64,23 +71,11 @@ function learn(){
         let arr=context.message.split('|');
         if (context.message.indexOf('学习#')>=0){
             if (typeof(arr[2])=='undefined') {
-                bot('send_msg', {
-                    message_type:context.message_type,
-                    user_id:context.group_id||context.user_id||context.discuss_id,
-                    group_id:context.group_id||context.user_id||context.discuss_id,
-                    discuss_id:context.group_id||context.user_id||context.discuss_id,
-                    message:"你是笨蛋吗，这么简单的指令都不会用",
-                });
+                app.send_msg(context,"你是笨蛋吗，这么简单的指令都不会用");
                 return 0;
             }
             if(arr[1].length<4){
-                bot('send_msg', {
-                    message_type:context.message_type,
-                    user_id:context.group_id||context.user_id||context.discuss_id,
-                    group_id:context.group_id||context.user_id||context.discuss_id,
-                    discuss_id:context.group_id||context.user_id||context.discuss_id,
-                    message:"为了更好地匹配，问题的长度至少为4哦~",
-                });
+                app.send_msg(context,"为了更好地匹配，问题的长度至少为4哦~");
                 return 0;
             }
             let img;
@@ -106,13 +101,7 @@ function learn(){
             }
             fs.readFile('src/chat.json',function(err,data){
                 if(err){
-                    bot('send_msg', {
-                        message_type:context.message_type,
-                        user_id:context.group_id||context.user_id||context.discuss_id,
-                        group_id:context.group_id||context.user_id||context.discuss_id,
-                        discuss_id:context.group_id||context.user_id||context.discuss_id,
-                        message:"词库读取失败，本小姐暂时无法学习",
-                    });
+                    app.send_msg(context,"词库读取失败，本小姐暂时无法学习");
                 }
                 else{
                     arr[2]=arr[2].replace(/(?<=CQ:image,file=).*?((?=,)|(?=]))/,`file:///${config.storagePath}\\${img}`).replace(/,url=(\S*)term=2/,"");
@@ -124,13 +113,7 @@ function learn(){
                             item.reply.forEach(function (c_reply,index) {
                                 if (c_reply===arr[2]){
                                     flag=2;
-                                    bot('send_msg', {
-                                        message_type:context.message_type,
-                                        user_id:context.group_id||context.user_id||context.discuss_id,
-                                        group_id:context.group_id||context.user_id||context.discuss_id,
-                                        discuss_id:context.group_id||context.user_id||context.discuss_id,
-                                        message:"本小姐已经学习过这个对话了，你是笨蛋嘛",
-                                    });
+                                    app.send_msg(context,"本小姐已经学习过这个对话了，你是笨蛋嘛");
                                 }
                             });
                             if (flag!==2) {
@@ -150,22 +133,10 @@ function learn(){
                         let str = JSON.stringify(json,"","\t");
                         fs.writeFile('src/chat.json',str,function(err){
                             if(err){
-                                bot('send_msg', {
-                                    message_type:context.message_type,
-                                    user_id:context.group_id||context.user_id||context.discuss_id,
-                                    group_id:context.group_id||context.user_id||context.discuss_id,
-                                    discuss_id:context.group_id||context.user_id||context.discuss_id,
-                                    message:"词库读取失败，本小姐暂时无法学习",
-                                });
+                                app.send_msg(context,"词库读取失败，本小姐暂时无法学习");
                             }
                         });
-                        bot('send_msg', {
-                            message_type:context.message_type,
-                            user_id:context.group_id||context.user_id||context.discuss_id,
-                            group_id:context.group_id||context.user_id||context.discuss_id,
-                            discuss_id:context.group_id||context.user_id||context.discuss_id,
-                            message:"本小姐学习完啦~",
-                        });
+                        app.send_msg(context,"本小姐学习完啦~");
                         loadChat();//重新读取json
                     }
                 }

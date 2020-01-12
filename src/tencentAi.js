@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const Qs = require('qs');
 const axios = require('axios');
 const appkey='';//请填写appkey
-const appid="";//请填写appid
+const appid='';//请填写appid
 function tencentAlp(message) {
     return new Promise(function (resolve, reject) {
         let map=new Map();
