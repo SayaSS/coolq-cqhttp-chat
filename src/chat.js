@@ -48,7 +48,7 @@ function chats(){
         let returnMessage='';
         if (max_value<config.similarity){
             if (config.useTencentAlp===1) {
-                returnMessage=await tAlp.tencentAlp(context.message);
+                returnMessage=await tAlp.tencentAlp(context.message.replace(/\[(\S*)]/g,'').replace(/ /g,''));
                 if (returnMessage===''){
                     let replys=["你真棒!","真的嘛?","然后呢~","Awesome!","Really?","And then?","すごい！","本当に？","それで","真系架？","点解既？","你好叻啊！"];//实在没得回复的万能回复
                     returnMessage=replys[Math.floor(Math.random()*replys.length)];
